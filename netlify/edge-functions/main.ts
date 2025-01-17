@@ -1,4 +1,4 @@
-import type { Config, Context } from 'npm:@netlify/edge-functions'
+import type { Config, Context } from 'https://edge.netlify.com/'
 import { StoreWithRedis } from '../store-with-redis.ts'
 
 const DEFAULT_SEARCH_PARAMS: [string, (req: Request, ctx: Context) => string | Promise<string>][] = [

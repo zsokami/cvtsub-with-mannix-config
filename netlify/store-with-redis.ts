@@ -1,4 +1,4 @@
-import { getStore, type Store } from 'npm:@netlify/blobs'
+import { getStore, type Store } from "https://esm.sh/@netlify/blobs@8.1.0"
 import { connect, type RedisClientType } from './redis.ts'
 
 const _redis = await connect()
