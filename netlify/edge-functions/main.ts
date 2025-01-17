@@ -18,7 +18,7 @@ async function getConfigURL(req: Request) {
 
 async function main(req: Request, ctx: Context) {
   const reqURL = new URL(req.url)
-  if (reqURL.pathname === '/') {
+  if (reqURL.pathname === '/' || reqURL.pathname === '/favicon.ico') {
     return new Response('Not Found', { status: 404 })
   }
   if (reqURL.pathname === '/config') {
