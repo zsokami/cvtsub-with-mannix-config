@@ -1,7 +1,8 @@
 {
   "fmt": {
-    "lineWidth": 999999999,
+    "lineWidth": 119,
     "semiColons": false,
     "singleQuote": true
-  }
+  },
+  "lock": false
 }

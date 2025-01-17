@@ -1,37 +1,41 @@
 import type { Config, Context } from 'npm:@netlify/edge-functions'
+import { StoreWithRedis } from '../store-with-redis.ts'
 
 const DEFAULT_SEARCH_PARAMS: [string, (req: Request, ctx: Context) => string | Promise<string>][] = [
   ['target', () => 'clash'],
   ['udp', () => 'true'],
   ['scv', () => 'true'],
-  ['config', async (req: Request) =>
-    await getRawURL(
-      'zsokami/ACL4SSR',
-      `ACL4SSR_Online_${new URL(req.url).hostname.startsWith('min.') ? '' : 'Full_'}Mannix.ini`,
-    )],
+  ['config', getConfigURL],
 ]
 
-const GITHUB_REPOS_API_KEY = Deno.env.get('GITHUB_REPOS_API_KEY')
-
-const GET_SHA_INIT = {
-  headers: {
-    'authorization': `Bearer ${GITHUB_REPOS_API_KEY}`,
-    'accept': 'application/vnd.github.sha',
-  },
-}
-
-async function getRawURL(repo: string, path: string) {
-  const resp = await fetch(`https://api.github.com/repos/${repo}/commits/HEAD`, GET_SHA_INIT)
-  if (resp.status !== 200) throw new Error(`GitHub API: ${resp.status} ${resp.statusText} ${await resp.text()}`)
-  const sha = await resp.text()
-  return `https://raw.githubusercontent.com/${repo}/${sha}/${path}`
+async function getConfigURL(req: Request) {
+  const sha = await new StoreWithRedis('arx').get('sha')
+  const name = new URL(req.url).hostname.split('.')[0]
+  return `https://raw.githubusercontent.com/zsokami/ACL4SSR/${sha}/ACL4SSR_Online${
+    name.startsWith('min') ? '' : '_Full'
+  }_Mannix${name.endsWith('ndl') ? '_No_DNS_Leak' : ''}.ini`
 }
 
 async function main(req: Request, ctx: Context) {
+  const reqURL = new URL(req.url)
+  if (reqURL.pathname === '/') {
+    return new Response('Not Found', { status: 404 })
+  }
+  if (reqURL.pathname === '/config') {
+    return Response.redirect(await getConfigURL(req))
+  }
+  if (reqURL.pathname === '/sha') {
+    if (reqURL.searchParams.get('token') !== Deno.env.get('TOKEN')) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    await new StoreWithRedis('arx').set('sha', reqURL.searchParams.get('value'))
+    return new Response('OK')
+  }
   let url
   try {
-    const reqURL = new URL(req.url)
-    url = new URL(decodeURIComponent(reqURL.pathname).replace(/^\/+\s*(https?:)?/i, (_, $1) => $1 || 'https:') + reqURL.search)
+    url = new URL(
+      decodeURIComponent(reqURL.pathname).replace(/^\/+\s*(https?:)?/i, (_, $1) => $1 || 'https:') + reqURL.search,
+    )
   } catch (e) {
     return new Response(String(e), { status: 400 })
   }
